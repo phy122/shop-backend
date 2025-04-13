@@ -1,5 +1,7 @@
 package com.example.shoppingmall.user.repository;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Repository;
 
 import com.example.shoppingmall.user.entity.User;
@@ -28,6 +30,16 @@ public class UserRepository {
                        .setParameter("username", username)
                        .getSingleResult();
         return count > 0;
+    }
+
+    public Optional<User> findByUsername(String username){
+        String jpql = "SELECT u FROM User u WHERE u.username = :username";
+        return em.createQuery(jpql, User.class)
+                 .setParameter("username", username)
+                 .getResultList()
+                 .stream()
+                 .findFirst();
+        
     }
 
 }
