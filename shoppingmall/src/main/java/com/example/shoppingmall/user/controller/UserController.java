@@ -42,6 +42,7 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody LoginDto loginDto, HttpSession session) {
         try {
             User user = userService.login(loginDto, session); // 로그인 시도
+            session.setAttribute("userId", user.getId());
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
