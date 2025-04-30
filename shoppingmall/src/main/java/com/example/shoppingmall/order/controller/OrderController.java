@@ -14,7 +14,12 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 
@@ -40,6 +45,22 @@ public class OrderController {
     public List<OrderResponseDto> getUserOrders(HttpSession session) {
         return orderService.getUserOrders(getUserIdFromSession(session));
     }
+
+    @GetMapping("/{orderId}")
+    public OrderResponseDto getOrderDetail(@PathVariable Long orderId, HttpSession session) {
+        return orderService.getOrderDetail(getUserIdFromSession(session), orderId);
+    }
+
+    @DeleteMapping("/{orderId}")
+    public void deleteOrder(@PathVariable Long orderId, HttpSession session){
+        orderService.deleteOrder(getUserIdFromSession(session), orderId);
+    }
+
+    @PatchMapping("/{orderId}/status")
+    public void updateStatus(@PathVariable Long orderId, @RequestParam String status){
+        orderService.updateOrderStatus(orderId, status);
+    }
+    
     
     
 }
