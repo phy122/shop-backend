@@ -2,7 +2,6 @@ package com.example.shoppingmall.cart.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -10,73 +9,86 @@ import org.springframework.stereotype.Service;
 import com.example.shoppingmall.cart.dto.CartItemRequestDto;
 import com.example.shoppingmall.cart.dto.CartResponseDto;
 import com.example.shoppingmall.cart.entity.Cart;
-import com.example.shoppingmall.cart.entity.CartItem;
+import com.example.shoppingmall.cart.entity.CartProduct;
 import com.example.shoppingmall.cart.repository.CartRepository;
+import com.example.shoppingmall.cart.repository.CartProductRepository;
+import com.example.shoppingmall.product.entity.Product;
+import com.example.shoppingmall.user.entity.User;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class CartServiceImpl implements CartService{
+public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
+    private final CartProductRepository cartProductRepository;
 
-    // userId로 장바구니 조회, 없으면 새로 생성
     @Override
-    public CartResponseDto getCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> {
+    public CartResponseDto getCart(User user) {
+        Cart cart = cartRepository.findByUserId(user).orElseGet(() -> {
             Cart newCart = new Cart();
-            newCart.setUserId(userId);
+            newCart.setUser(user);
             return cartRepository.save(newCart);
         });
 
-        List<CartResponseDto.CartItemDto> items = cart.getItems().stream()
-                .map(item -> new CartResponseDto.CartItemDto(item.getProductId(), item.getQuantity()))
+        List<CartProduct> cartProducts = cartProductRepository.findByCartId(cart.getId());
+
+        List<CartResponseDto.CartItemDto> items = cartProducts.stream()
+                .map(item -> new CartResponseDto.CartItemDto(item.getProduct().getId(), item.getQuantity()))
                 .collect(Collectors.toList());
 
         return new CartResponseDto(cart.getId(), items);
     }
 
-    // 이미 담긴 상품이면 수량 증가, 아니면 새로 추가
     @Override
-    public CartResponseDto addItem(Long userId, CartItemRequestDto requestDto) {
-        Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> {
+    public CartResponseDto addItem(User user, CartItemRequestDto requestDto) {
+        Cart cart = cartRepository.findByUserId(user).orElseGet(() -> {
             Cart newCart = new Cart();
-            newCart.setUserId(userId);
+            newCart.setUser(user);
             return cartRepository.save(newCart);
         });
 
-        Optional<CartItem> existionItem = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(requestDto.getProductId()))
+        List<CartProduct> cartProducts = cartProductRepository.findByCartId(cart.getId());
+
+        Optional<CartProduct> existingItemOpt = cartProducts.stream()
+                .filter(item -> item.getProduct().getId().equals(requestDto.getProductId()))
                 .findFirst();
 
-        if(existionItem.isPresent()){
-            existionItem.get().setQuantity(existionItem.get().getQuantity() + requestDto.getQuantity());
-        } else{
-            CartItem item = new CartItem();
-            item.setProductId(requestDto.getProductId());
-            item.setQuantity(requestDto.getQuantity());
-            item.setCart(cart);
-            cart.getItems().add(item);
+        if (existingItemOpt.isPresent()) {
+            CartProduct existingItem = existingItemOpt.get();
+            existingItem.setQuantity(existingItem.getQuantity() + requestDto.getQuantity());
+            cartProductRepository.save(existingItem);
+        } else {
+            CartProduct newItem = new CartProduct();
+            Product product = new Product();
+            product.setId(requestDto.getProductId()); // 주의: 영속성 없으면 flush 전에 참조 불가
+
+            newItem.setProduct(product);
+            newItem.setQuantity(requestDto.getQuantity());
+            newItem.setCart(cart);
+            cartProductRepository.save(newItem);
         }
 
-        Cart savedCart = cartRepository.save(cart);
+        List<CartProduct> updatedProducts = cartProductRepository.findByCartId(cart.getId());
 
-        List<CartResponseDto.CartItemDto> items = savedCart.getItems().stream()
-                .map(item -> new CartResponseDto.CartItemDto(item.getProductId(), item.getQuantity()))
+        List<CartResponseDto.CartItemDto> items = updatedProducts.stream()
+                .map(item -> new CartResponseDto.CartItemDto(item.getProduct().getId(), item.getQuantity()))
                 .collect(Collectors.toList());
-        
-        return new CartResponseDto(savedCart.getId(), items);
+
+        return new CartResponseDto(cart.getId(), items);
     }
 
-    // 특정 상품 ID를 가진 아이템을 장바구니에서 제거
     @Override
-    public void removeItem(Long userId, Long productId) {
-        Cart cart = cartRepository.findByUserId(userId)
+    public void removeItem(User user, Product product) {
+        Cart cart = cartRepository.findByUserId(user)
                 .orElseThrow(() -> new IllegalArgumentException("장바구니가 존재하지 않습니다."));
-        
-        cart.getItems().removeIf(item -> item.getProductId().equals(productId));
-        cartRepository.save(cart);
+
+        List<CartProduct> cartProducts = cartProductRepository.findByCartId(cart.getId());
+
+        cartProducts.stream()
+                .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .findFirst()
+                .ifPresent(cartProductRepository::delete);
     }
-    
 }
