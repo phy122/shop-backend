@@ -9,6 +9,6 @@ import com.example.shoppingmall.user.entity.User;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    List<Order> findByUserId(User user);
+    List<Order> findByCart_User(User user);
     
 }

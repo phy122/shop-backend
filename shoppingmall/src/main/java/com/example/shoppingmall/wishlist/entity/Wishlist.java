@@ -1,6 +1,6 @@
-package com.example.shoppingmall.ReviewLike;
+package com.example.shoppingmall.wishlist.entity;
 
-import com.example.shoppingmall.review.entity.Review;
+import com.example.shoppingmall.product.entity.Product;
 import com.example.shoppingmall.user.entity.User;
 
 import jakarta.persistence.Entity;
@@ -8,7 +8,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -20,22 +19,19 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "review_likes", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "review_id"})
+@Table(name = "wishlist", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "product_id"})
 })
-public class ReviewLike {
-    
+public class Wishlist {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id", nullable = false)
-    private Review review;
+    private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
-
 }

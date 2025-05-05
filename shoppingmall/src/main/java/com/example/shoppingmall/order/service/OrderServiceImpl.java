@@ -66,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderResponseDto> getUserOrders(User user) {
-        return orderRepository.findByUserId(user).stream()
+        return orderRepository.findByCart_User(user).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
